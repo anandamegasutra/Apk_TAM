@@ -153,13 +153,14 @@ elif menu == "Lihat Hasil (Admin)":
             buffer = io.BytesIO()
             with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
                 df.to_excel(writer, index=False, sheet_name="Hasil Responden")
+                writer.close()  # pastikan file selesai ditulis
+
             st.download_button(
                 label="⬇️ Download Data Excel",
                 data=buffer.getvalue(),
-                file_name="hasil_responden.csv",
+                file_name="hasil_responden.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
     except Exception as e:
         st.error(f"Terjadi error saat membaca data: {e}")
-
