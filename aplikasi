@@ -1,0 +1,130 @@
+import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+import os
+from datetime import datetime
+from streamlit_option_menu import option_menu
+
+st.set_page_config(page_title="TAM FB Jual Beli", layout="wide")
+
+# File penyimpanan data
+DATA_FILE = "data/hasil_responden.csv"
+os.makedirs("data", exist_ok=True)
+
+# Pertanyaan berdasarkan indikator
+questions = {
+    "PEOU": [
+        "Kemudahan untuk digunakan",
+        "Kemudahan untuk mempelajari/dipahami",
+        "Kemudahan untuk berinteraksi",
+        "Kemudahan untuk mencapai tujuan",
+        "Kemudahan untuk mengakses"
+    ],
+    "PU": [
+        "Meningkatkan kinerja",
+        "Meningkatkan efektivitas",
+        "Meningkatkan efisiensi",
+        "Menyediakan sumber kerja",
+        "Meningkatkan interaksi dan komunikasi"
+    ],
+    "ATU": [
+        "Sikap penerimaan terhadap sistem",
+        "Kenyamanan dalam menggunakan",
+        "Kesenangan dalam menggunakan",
+        "Manfaat dalam menggunakan"
+    ],
+    "BI": [
+        "Keinginan untuk terus menggunakan",
+        "Kemauan untuk merekomendasikan",
+        "Keinginan untuk bertransaksi lebih sering",
+        "Rencana untuk aktif"
+    ],
+    "ATU_Y": [
+        "Frekuensi penggunaan",
+        "Durasi waktu penggunaan",
+        "Kepuasan penggunaan",
+        "Penggunaan teknologi sesungguhnya"
+    ]
+}
+
+# Sidebar menu modern
+with st.sidebar:
+    selected = option_menu(
+        "Menu Aplikasi",
+        ["Isi Kuesioner", "Lihat & Edit Hasil"],
+        icons=["clipboard-check", "bar-chart-fill"],  # Bootstrap icons
+        menu_icon="cast",
+        default_index=0,
+    )
+
+# Halaman Kuesioner
+if selected == "Isi Kuesioner":
+    st.title("📋 Kuesioner TAM - Jual Beli Online di FB")
+
+    nama = st.text_input("Nama Responden (opsional)")
+    responses = {}
+    for indicator, qs in questions.items():
+        st.subheader(indicator)
+        responses[indicator] = []
+        for q in qs:
+            score = st.slider(q, 1, 5, 3, key=f"{indicator}_{q}")
+            responses[indicator].append(score)
+
+    if st.button("💾 Simpan Jawaban"):
+        results = {ind: sum(scores)/len(scores) for ind, scores in responses.items()}
+        results["Nama"] = nama if nama else f"Responden_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        
+        df = pd.DataFrame([results])
+
+        try:
+            old_df = pd.read_csv(DATA_FILE)
+            df = pd.concat([old_df, df], ignore_index=True)
+        except FileNotFoundError:
+            pass
+
+        df.to_csv(DATA_FILE, index=False)
+        st.success("✅ Jawaban berhasil disimpan!")
+
+# Halaman Lihat & Edit Hasil
+elif selected == "Lihat & Edit Hasil":
+    st.title("📊 Dashboard Hasil Kuesioner TAM")
+
+    try:
+        df = pd.read_csv(DATA_FILE)
+
+        st.subheader("📑 Data Responden (Bisa Diedit)")
+        edited_df = st.data_editor(df, num_rows="dynamic")  # edit langsung di tabel
+
+        # Tombol simpan perubahan
+        if st.button("💾 Simpan Perubahan"):
+            edited_df.to_csv(DATA_FILE, index=False)
+            st.success("Perubahan berhasil disimpan!")
+
+        # Hapus responden tertentu
+        st.subheader("🗑️ Hapus Data Responden")
+        responden_list = edited_df["Nama"].tolist()
+        selected_responden = st.selectbox("Pilih responden untuk dihapus:", responden_list)
+        if st.button("Hapus Responden"):
+            new_df = edited_df[edited_df["Nama"] != selected_responden]
+            new_df.to_csv(DATA_FILE, index=False)
+            st.success(f"Responden '{selected_responden}' berhasil dihapus!")
+            df = new_df  # update tampilan setelah hapus
+
+        # Analisis Rata-rata Indikator
+        indikator = ["PEOU", "PU", "ATU", "BI", "ATU_Y"]
+        avg_scores = df[indikator].mean()
+
+        st.subheader("📈 Rata-rata Indikator TAM")
+        st.write(avg_scores)
+
+        fig, ax = plt.subplots()
+        avg_scores.plot(kind="bar", ax=ax, color="skyblue", edgecolor="black")
+        ax.set_ylabel("Skor Rata-rata")
+        ax.set_ylim(1, 5)
+        st.pyplot(fig)
+
+        # Download CSV
+        st.download_button("⬇️ Download Data CSV", df.to_csv(index=False), file_name="hasil_responden.csv")
+
+    except FileNotFoundError:
+        st.warning("⚠️ Belum ada data responden.")
