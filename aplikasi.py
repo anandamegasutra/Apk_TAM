@@ -88,45 +88,45 @@ if menu == "Isi Kuesioner":
     nama = st.text_input("Nama Responden (opsional)")
     responses = {}
 
-# Pertanyaan
-for indicator, qs in questions.items():
-    st.subheader(indicator)
-    responses[indicator] = []
-    for q in qs:
-        score = st.radio(
-            q,
-            options=[1, 2, 3, 4, 5],
-            format_func=lambda x: {
-                1: "1 - Sangat Tidak Setuju",
-                2: "2 - Tidak Setuju",
-                3: "3 - Netral",
-                4: "4 - Setuju",
-                5: "5 - Sangat Setuju"
-            }[x],
-            index=None,   # default None, jadi belum ada jawaban
-            key=q
-        )
-        responses[indicator].append(score)
+    # ✅ Pertanyaan harus di dalam blok ini
+    for indicator, qs in questions.items():
+        st.subheader(indicator)
+        responses[indicator] = []
+        for q in qs:
+            score = st.radio(
+                q,
+                options=[1, 2, 3, 4, 5],
+                format_func=lambda x: {
+                    1: "1 - Sangat Tidak Setuju",
+                    2: "2 - Tidak Setuju",
+                    3: "3 - Netral",
+                    4: "4 - Setuju",
+                    5: "5 - Sangat Setuju"
+                }[x],
+                index=None,   # default None, jadi wajib isi
+                key=q
+            )
+            responses[indicator].append(score)
 
-# Tombol simpan dengan validasi
-if st.button("💾 Simpan Jawaban"):
-    if any(score is None for scores in responses.values() for score in scores):
-        st.error("⚠️ Harap isi semua pertanyaan sebelum menyimpan.")
-    else:
-        results = {ind: sum(scores) / len(scores) for ind, scores in responses.items()}
-        results = {**{k: None for k in questions.keys()}, **results}
-        results["Nama"] = nama if nama else f"Responden_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+    # ✅ Tombol simpan juga harus di dalam blok
+    if st.button("💾 Simpan Jawaban"):
+        if any(score is None for scores in responses.values() for score in scores):
+            st.error("⚠️ Harap isi semua pertanyaan sebelum menyimpan.")
+        else:
+            results = {ind: sum(scores) / len(scores) for ind, scores in responses.items()}
+            results = {**{k: None for k in questions.keys()}, **results}
+            results["Nama"] = nama if nama else f"Responden_{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
-        df = pd.DataFrame([results])
+            df = pd.DataFrame([results])
 
-        try:
-            old_df = pd.read_csv(DATA_FILE)
-            df = pd.concat([old_df, df], ignore_index=True)
-        except (FileNotFoundError, pd.errors.EmptyDataError):
-            pass
+            try:
+                old_df = pd.read_csv(DATA_FILE)
+                df = pd.concat([old_df, df], ignore_index=True)
+            except (FileNotFoundError, pd.errors.EmptyDataError):
+                pass
 
-        df.to_csv(DATA_FILE, index=False)
-        st.success("✅ Jawaban berhasil disimpan! Terima kasih sudah berpartisipasi 🙏")
+            df.to_csv(DATA_FILE, index=False)
+            st.success("✅ Jawaban berhasil disimpan! Terima kasih sudah berpartisipasi 🙏")
 
 # ===================== Lihat Hasil (Admin) =====================
 elif menu == "Lihat Hasil (Admin)":
@@ -179,4 +179,5 @@ elif menu == "Lihat Hasil (Admin)":
 
     except Exception as e:
         st.error(f"Terjadi error saat membaca data: {e}")
+
 
